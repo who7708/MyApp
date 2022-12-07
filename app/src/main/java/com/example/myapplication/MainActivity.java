@@ -1,6 +1,8 @@
 package com.example.myapplication;
 
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.webkit.CookieManager;
@@ -18,31 +20,26 @@ import com.example.myapplication.common.api.github.GitHubApi;
 import com.example.myapplication.common.api.github.GithubEndpoints;
 import com.example.myapplication.common.api.reqres.User;
 import com.example.myapplication.common.api.reqres.UserApi;
+import com.example.myapplication.common.api.taobao.IpInfo;
+import com.example.myapplication.common.api.taobao.TaobaoApi;
 import com.example.myapplication.databinding.ActivityMainBinding;
 import com.google.gson.Gson;
-
-import java.io.IOException;
-import java.util.concurrent.FutureTask;
+import com.google.gson.GsonBuilder;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = MainActivity.class.getSimpleName();
 
-    private ActivityMainBinding binding;
+    private static final Gson GSON = new GsonBuilder()
+            .serializeNulls()
+            .setPrettyPrinting()
+            .create();
 
-    //构建Retrofit实例
-    Retrofit mRetrofit = new Retrofit.Builder()
-            // 设置网络请求BaseUrl地址
-            .baseUrl("https://reqres.in")
-            // 设置数据解析器
-            .addConverterFactory(GsonConverterFactory.create())
-            .build();
+    private ActivityMainBinding binding;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,6 +64,10 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // final String wvOpenUrl = "https://www.baidu.com";
+        // final String wvOpenUrl = "https://gitee.com/login";
+        final String wvOpenUrl = ServiceGenerator.API_TAOBAO_IP_BASE_URL;
+
         binding.btnUserLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -74,19 +75,25 @@ public class MainActivity extends AppCompatActivity {
                 // WebView webView = findViewById(R.id.wv_login);
                 final WebView webView = binding.wvLogin;
                 //访问网页
-                // webView.loadUrl("https://www.baidu.com");
-                webView.loadUrl("https://gitee.com/login");
+                webView.loadUrl(wvOpenUrl);
                 // 系统默认会通过手机浏览器打开网页，为了能够直接通过WebView显示网页，则必须设置
                 webView.setWebViewClient(new WebViewClient() {
 
                     @Override
-                    public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                        String url = request.getUrl().toString();
+                    public boolean shouldOverrideUrlLoading(WebView view, String url) {
                         // 使用WebView加载显示url
                         view.loadUrl(url);
                         Log.d(TAG, "url: " + url);
+                        // Toast.makeText(MainActivity.this, "url: " + url, Toast.LENGTH_SHORT).show();
+                        binding.tvShowUser.setText("url: " + url);
                         // 返回true
                         return true;
+                    }
+
+                    @Override
+                    public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                        String url = request.getUrl().toString();
+                        return this.shouldOverrideUrlLoading(view, url);
                     }
 
                     @Override
@@ -95,7 +102,9 @@ public class MainActivity extends AppCompatActivity {
                         String cookies = CookieManager.getInstance().getCookie(view.getUrl());
                         // save cookies or call new fun to handle actions
                         //  newCookies(cookies);
-                        Log.d(TAG, "cookies: " + cookies);
+                        Log.d(TAG, "onPageFinished#getCookie: " + cookies);
+                        // Toast.makeText(MainActivity.this, "onPageFinished#getCookie: " + cookies, Toast.LENGTH_SHORT).show();
+                        binding.tvShowUser.setText("onPageFinished#getCookie: " + cookies);
                     }
                 });
             }
@@ -105,7 +114,18 @@ public class MainActivity extends AppCompatActivity {
             final CookieManager cookieManager = CookieManager.getInstance();
             boolean hasCookies = cookieManager.hasCookies();
             Log.d(TAG, "hasCookies: " + hasCookies);
+            String cookie = cookieManager.getCookie(wvOpenUrl);
+            Log.d(TAG, "setOnClickListener#getCookie: " + cookie);
+            // Toast.makeText(MainActivity.this, "setOnClickListener#getCookie: " + cookie, Toast.LENGTH_SHORT).show();
+            binding.tvShowUser.setText("setOnClickListener#getCookie: " + cookie);
+        });
 
+        binding.btnIpQuery.setOnClickListener(v -> {
+            Editable text = binding.tvIpInput.getText();
+            if (TextUtils.isEmpty(text)) {
+                return;
+            }
+            queryIp(text.toString());
         });
 
     }
@@ -204,4 +224,27 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
+    /**
+     * 查询ip
+     */
+    private void queryIp(String ip) {
+        TaobaoApi taobaoApi = ServiceGenerator.createService(TaobaoApi.class);
+        Call<Result<IpInfo>> resultCall = taobaoApi.outGetIpInfo(ip, "alibaba-inc");
+        resultCall.enqueue(new Callback<Result<IpInfo>>() {
+            public void onResponse(@NonNull Call<Result<IpInfo>> call, @NonNull Response<Result<IpInfo>> response) {
+                Result<IpInfo> ipInfoResult = response.body();
+                Log.d(TAG, "onResponse: " + ipInfoResult);
+                String json = GSON.toJson(ipInfoResult);
+                // Toast.makeText(MainActivity.this, json, Toast.LENGTH_SHORT).show();
+                binding.tvShowUser.setText("onResponse: " + json);
+            }
+
+            public void onFailure(@NonNull Call<Result<IpInfo>> call, @NonNull Throwable t) {
+                Log.e(TAG, "回调失败：", t);
+                Toast.makeText(MainActivity.this, "回调失败", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
 }
