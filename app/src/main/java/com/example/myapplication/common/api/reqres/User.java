@@ -1,4 +1,4 @@
-package com.example.myapplication.common.api.model;
+package com.example.myapplication.common.api.reqres;
 
 
 /**
@@ -59,5 +59,16 @@ public class User {
 
     public void setAvatar(String avatar) {
         this.avatar = avatar;
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "id=" + id +
+                ", email='" + email + '\'' +
+                ", firstName='" + firstName + '\'' +
+                ", lastName='" + lastName + '\'' +
+                ", avatar='" + avatar + '\'' +
+                '}';
     }
 }
