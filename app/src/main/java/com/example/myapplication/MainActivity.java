@@ -6,8 +6,10 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.webkit.CookieManager;
-import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -24,6 +26,8 @@ import com.example.myapplication.common.api.taobao.TaobaoApi;
 import com.example.myapplication.databinding.ActivityMainBinding;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+
+import java.nio.charset.StandardCharsets;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -73,54 +77,64 @@ public class MainActivity extends AppCompatActivity {
                 //获得控件
                 // WebView webView = findViewById(R.id.wv_login);
                 final WebView webView = binding.wvLogin;
+
+                WebSettings webViewSettings = webView.getSettings();
+                webViewSettings.setJavaScriptEnabled(true);
+                webViewSettings.setDefaultTextEncodingName(StandardCharsets.UTF_8.name());
+                webViewSettings.setJavaScriptCanOpenWindowsAutomatically(true);
+                //设定支持 viewport
+                webViewSettings.setUseWideViewPort(true);
+                // 自适应屏幕
+                webViewSettings.setLoadWithOverviewMode(true);
+
                 //访问网页
                 webView.loadUrl(wvOpenUrl);
-                // 系统默认会通过手机浏览器打开网页，为了能够直接通过WebView显示网页，则必须设置
-                webView.setWebChromeClient(new WebChromeClient() {
+//                 // 系统默认会通过手机浏览器打开网页，为了能够直接通过WebView显示网页，则必须设置
+//                 webView.setWebChromeClient(new WebChromeClient() {
+//                     @Override
+//                     public void onProgressChanged(WebView view, int newProgress) {
+//                         super.onProgressChanged(view, newProgress);
+//                         binding.tvShowUser.setText("newProgress: " + newProgress);
+//                         if (newProgress == 100) {
+//                             String cookies = CookieManager.getInstance().getCookie(view.getUrl());
+//                             // save cookies or call new fun to handle actions
+//                             //  newCookies(cookies);
+//                             Log.d(TAG, "onProgressChanged#getCookie: " + cookies);
+//                             // Toast.makeText(MainActivity.this, "onProgressChanged#getCookie: " + cookies, Toast.LENGTH_SHORT).show();
+//                             binding.tvShowUser.setText("onProgressChanged#getCookie: " + cookies);
+//                         }
+//                     }
+//                 });
+                webView.setWebViewClient(new WebViewClient() {
+                
                     @Override
-                    public void onProgressChanged(WebView view, int newProgress) {
-                        super.onProgressChanged(view, newProgress);
-                        binding.tvShowUser.setText("newProgress: " + newProgress);
-                        if (newProgress == 100) {
-                            String cookies = CookieManager.getInstance().getCookie(view.getUrl());
-                            // save cookies or call new fun to handle actions
-                            //  newCookies(cookies);
-                            Log.d(TAG, "onProgressChanged#getCookie: " + cookies);
-                            // Toast.makeText(MainActivity.this, "onProgressChanged#getCookie: " + cookies, Toast.LENGTH_SHORT).show();
-                            binding.tvShowUser.setText("onProgressChanged#getCookie: " + cookies);
-                        }
+                    public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                        // 使用WebView加载显示url
+                        view.loadUrl(url);
+                        Log.d(TAG, "url: " + url);
+                        // Toast.makeText(MainActivity.this, "url: " + url, Toast.LENGTH_SHORT).show();
+                        binding.tvShowUser.setText("url: " + url);
+                        // 返回true
+                        return true;
+                    }
+                
+                    @Override
+                    public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                        String url = request.getUrl().toString();
+                        return this.shouldOverrideUrlLoading(view, url);
+                    }
+                
+                    @Override
+                    public void onPageFinished(WebView view, String url) {
+                        super.onPageFinished(view, url);
+                        String cookies = CookieManager.getInstance().getCookie(view.getUrl());
+                        // save cookies or call new fun to handle actions
+                        //  newCookies(cookies);
+                        Log.d(TAG, "onPageFinished#getCookie: " + cookies);
+                        // Toast.makeText(MainActivity.this, "onPageFinished#getCookie: " + cookies, Toast.LENGTH_SHORT).show();
+                        binding.tvShowUser.setText("onPageFinished#getCookie: " + cookies);
                     }
                 });
-                // webView.setWebViewClient(new WebViewClient() {
-                //
-                //     @Override
-                //     public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                //         // 使用WebView加载显示url
-                //         view.loadUrl(url);
-                //         Log.d(TAG, "url: " + url);
-                //         // Toast.makeText(MainActivity.this, "url: " + url, Toast.LENGTH_SHORT).show();
-                //         binding.tvShowUser.setText("url: " + url);
-                //         // 返回true
-                //         return true;
-                //     }
-                //
-                //     @Override
-                //     public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                //         String url = request.getUrl().toString();
-                //         return this.shouldOverrideUrlLoading(view, url);
-                //     }
-                //
-                //     @Override
-                //     public void onPageFinished(WebView view, String url) {
-                //         super.onPageFinished(view, url);
-                //         String cookies = CookieManager.getInstance().getCookie(view.getUrl());
-                //         // save cookies or call new fun to handle actions
-                //         //  newCookies(cookies);
-                //         Log.d(TAG, "onPageFinished#getCookie: " + cookies);
-                //         // Toast.makeText(MainActivity.this, "onPageFinished#getCookie: " + cookies, Toast.LENGTH_SHORT).show();
-                //         binding.tvShowUser.setText("onPageFinished#getCookie: " + cookies);
-                //     }
-                // });
             }
         });
 
